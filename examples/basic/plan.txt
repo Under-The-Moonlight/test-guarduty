@@ -1,0 +1,646 @@
+module.guardduty.data.aws_region.current: Reading...
+module.guardduty.data.aws_partition.current: Reading...
+module.guardduty.data.aws_caller_identity.current: Reading...
+module.guardduty.data.aws_partition.current: Read complete after 0s [id=aws]
+module.guardduty.data.aws_region.current: Read complete after 0s [id=eu-central-1]
+module.guardduty.data.aws_caller_identity.current: Read complete after 0s [id=123456789012]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+ <= read (data resources)
+
+Terraform will perform the following actions:
+
+  # module.guardduty.data.aws_iam_policy_document.findings_bucket[0] will be read during apply
+  # (config refers to values not yet known)
+ <= data "aws_iam_policy_document" "findings_bucket" {
+      + id            = (known after apply)
+      + json          = (known after apply)
+      + minified_json = (known after apply)
+
+      + statement {
+          + actions   = [
+              + "s3:GetBucketLocation",
+            ]
+          + effect    = "Allow"
+          + resources = [
+              + "arn:aws:s3:::guardduty-findings-123456789012-eu-central-1",
+            ]
+          + sid       = "AllowGuardDutyGetBucketLocation"
+
+          + condition {
+              + test     = "StringEquals"
+              + values   = [
+                  + "123456789012",
+                ]
+              + variable = "aws:SourceAccount"
+            }
+          + condition {
+              + test     = "StringEquals"
+              + values   = [
+                  + (known after apply),
+                ]
+              + variable = "aws:SourceArn"
+            }
+
+          + principals {
+              + identifiers = [
+                  + "guardduty.amazonaws.com",
+                ]
+              + type        = "Service"
+            }
+        }
+      + statement {
+          + actions   = [
+              + "s3:PutObject",
+            ]
+          + effect    = "Allow"
+          + resources = [
+              + "arn:aws:s3:::guardduty-findings-123456789012-eu-central-1/*",
+            ]
+          + sid       = "AllowGuardDutyPutObject"
+
+          + condition {
+              + test     = "StringEquals"
+              + values   = [
+                  + "123456789012",
+                ]
+              + variable = "aws:SourceAccount"
+            }
+          + condition {
+              + test     = "StringEquals"
+              + values   = [
+                  + (known after apply),
+                ]
+              + variable = "aws:SourceArn"
+            }
+
+          + principals {
+              + identifiers = [
+                  + "guardduty.amazonaws.com",
+                ]
+              + type        = "Service"
+            }
+        }
+      + statement {
+          + actions   = [
+              + "s3:PutObject",
+            ]
+          + effect    = "Deny"
+          + resources = [
+              + "arn:aws:s3:::guardduty-findings-123456789012-eu-central-1/*",
+            ]
+          + sid       = "DenyUnencryptedGuardDutyUploads"
+
+          + condition {
+              + test     = "StringNotEquals"
+              + values   = [
+                  + "aws:kms",
+                ]
+              + variable = "s3:x-amz-server-side-encryption"
+            }
+
+          + principals {
+              + identifiers = [
+                  + "guardduty.amazonaws.com",
+                ]
+              + type        = "Service"
+            }
+        }
+      + statement {
+          + actions   = [
+              + "s3:PutObject",
+            ]
+          + effect    = "Deny"
+          + resources = [
+              + "arn:aws:s3:::guardduty-findings-123456789012-eu-central-1/*",
+            ]
+          + sid       = "DenyIncorrectEncryptionKey"
+
+          + condition {
+              + test     = "StringNotEquals"
+              + values   = [
+                  + (known after apply),
+                ]
+              + variable = "s3:x-amz-server-side-encryption-aws-kms-key-id"
+            }
+
+          + principals {
+              + identifiers = [
+                  + "guardduty.amazonaws.com",
+                ]
+              + type        = "Service"
+            }
+        }
+      + statement {
+          + actions   = [
+              + "s3:*",
+            ]
+          + effect    = "Deny"
+          + resources = [
+              + "arn:aws:s3:::guardduty-findings-123456789012-eu-central-1",
+              + "arn:aws:s3:::guardduty-findings-123456789012-eu-central-1/*",
+            ]
+          + sid       = "DenyInsecureTransport"
+
+          + condition {
+              + test     = "Bool"
+              + values   = [
+                  + "false",
+                ]
+              + variable = "aws:SecureTransport"
+            }
+
+          + principals {
+              + identifiers = [
+                  + "*",
+                ]
+              + type        = "*"
+            }
+        }
+    }
+
+  # module.guardduty.data.aws_iam_policy_document.kms[0] will be read during apply
+  # (config refers to values not yet known)
+ <= data "aws_iam_policy_document" "kms" {
+      + id                      = (known after apply)
+      + json                    = (known after apply)
+      + minified_json           = (known after apply)
+      + source_policy_documents = [
+          + (known after apply),
+        ]
+
+      + statement {
+          + actions   = [
+              + "kms:*",
+            ]
+          + effect    = "Allow"
+          + resources = [
+              + "*",
+            ]
+          + sid       = "EnableIAMPolicies"
+
+          + principals {
+              + identifiers = [
+                  + "arn:aws:iam::123456789012:root",
+                ]
+              + type        = "AWS"
+            }
+        }
+    }
+
+  # module.guardduty.data.aws_iam_policy_document.kms_service_access will be read during apply
+  # (config refers to values not yet known)
+ <= data "aws_iam_policy_document" "kms_service_access" {
+      + id            = (known after apply)
+      + json          = (known after apply)
+      + minified_json = (known after apply)
+
+      + statement {
+          + actions   = [
+              + "kms:GenerateDataKey",
+            ]
+          + effect    = "Allow"
+          + resources = [
+              + "*",
+            ]
+          + sid       = "AllowGuardDutyToEncryptFindings"
+
+          + condition {
+              + test     = "StringEquals"
+              + values   = [
+                  + "123456789012",
+                ]
+              + variable = "aws:SourceAccount"
+            }
+          + condition {
+              + test     = "StringEquals"
+              + values   = [
+                  + (known after apply),
+                ]
+              + variable = "aws:SourceArn"
+            }
+
+          + principals {
+              + identifiers = [
+                  + "guardduty.amazonaws.com",
+                ]
+              + type        = "Service"
+            }
+        }
+      + statement {
+          + actions   = [
+              + "kms:Decrypt",
+              + "kms:GenerateDataKey",
+            ]
+          + effect    = "Allow"
+          + resources = [
+              + "*",
+            ]
+          + sid       = "AllowEventBridgeToUseKeyForSNS"
+
+          + principals {
+              + identifiers = [
+                  + "events.amazonaws.com",
+                ]
+              + type        = "Service"
+            }
+        }
+    }
+
+  # module.guardduty.data.aws_iam_policy_document.sns[0] will be read during apply
+  # (config refers to values not yet known)
+ <= data "aws_iam_policy_document" "sns" {
+      + id            = (known after apply)
+      + json          = (known after apply)
+      + minified_json = (known after apply)
+
+      + statement {
+          + actions   = [
+              + "sns:Publish",
+            ]
+          + effect    = "Allow"
+          + resources = [
+              + (known after apply),
+            ]
+          + sid       = "AllowEventBridgePublish"
+
+          + condition {
+              + test     = "ArnEquals"
+              + values   = [
+                  + "arn:aws:events:eu-central-1:123456789012:rule/guardduty-findings-alert",
+                ]
+              + variable = "aws:SourceArn"
+            }
+
+          + principals {
+              + identifiers = [
+                  + "events.amazonaws.com",
+                ]
+              + type        = "Service"
+            }
+        }
+      + statement {
+          + actions   = [
+              + "sns:Publish",
+            ]
+          + effect    = "Deny"
+          + resources = [
+              + (known after apply),
+            ]
+          + sid       = "DenyInsecureTransport"
+
+          + condition {
+              + test     = "Bool"
+              + values   = [
+                  + "false",
+                ]
+              + variable = "aws:SecureTransport"
+            }
+
+          + principals {
+              + identifiers = [
+                  + "*",
+                ]
+              + type        = "*"
+            }
+        }
+    }
+
+  # module.guardduty.aws_cloudwatch_event_rule.findings[0] will be created
+  + resource "aws_cloudwatch_event_rule" "findings" {
+      + arn            = (known after apply)
+      + description    = "GuardDuty findings with severity >= 7"
+      + event_bus_name = "default"
+      + event_pattern  = jsonencode(
+            {
+              + detail      = {
+                  + severity = [
+                      + {
+                          + numeric = [
+                              + ">=",
+                              + 7,
+                            ]
+                        },
+                    ]
+                }
+              + detail-type = [
+                  + "GuardDuty Finding",
+                ]
+              + source      = [
+                  + "aws.guardduty",
+                ]
+            }
+        )
+      + force_destroy  = false
+      + id             = (known after apply)
+      + name           = "guardduty-findings-alert"
+      + name_prefix    = (known after apply)
+      + region         = "eu-central-1"
+      + tags_all       = (known after apply)
+    }
+
+  # module.guardduty.aws_cloudwatch_event_target.sns[0] will be created
+  + resource "aws_cloudwatch_event_target" "sns" {
+      + arn            = (known after apply)
+      + event_bus_name = "default"
+      + force_destroy  = false
+      + id             = (known after apply)
+      + region         = "eu-central-1"
+      + rule           = "guardduty-findings-alert"
+      + target_id      = "sns"
+    }
+
+  # module.guardduty.aws_guardduty_detector.this will be created
+  + resource "aws_guardduty_detector" "this" {
+      + account_id                   = (known after apply)
+      + arn                          = (known after apply)
+      + enable                       = true
+      + finding_publishing_frequency = "FIFTEEN_MINUTES"
+      + id                           = (known after apply)
+      + region                       = "eu-central-1"
+      + tags_all                     = (known after apply)
+
+      + datasources (known after apply)
+    }
+
+  # module.guardduty.aws_guardduty_detector_feature.this["EBS_MALWARE_PROTECTION"] will be created
+  + resource "aws_guardduty_detector_feature" "this" {
+      + detector_id = (known after apply)
+      + id          = (known after apply)
+      + name        = "EBS_MALWARE_PROTECTION"
+      + region      = "eu-central-1"
+      + status      = "ENABLED"
+    }
+
+  # module.guardduty.aws_guardduty_detector_feature.this["EKS_AUDIT_LOGS"] will be created
+  + resource "aws_guardduty_detector_feature" "this" {
+      + detector_id = (known after apply)
+      + id          = (known after apply)
+      + name        = "EKS_AUDIT_LOGS"
+      + region      = "eu-central-1"
+      + status      = "ENABLED"
+    }
+
+  # module.guardduty.aws_guardduty_detector_feature.this["RDS_LOGIN_EVENTS"] will be created
+  + resource "aws_guardduty_detector_feature" "this" {
+      + detector_id = (known after apply)
+      + id          = (known after apply)
+      + name        = "RDS_LOGIN_EVENTS"
+      + region      = "eu-central-1"
+      + status      = "ENABLED"
+    }
+
+  # module.guardduty.aws_guardduty_detector_feature.this["RUNTIME_MONITORING"] will be created
+  + resource "aws_guardduty_detector_feature" "this" {
+      + detector_id = (known after apply)
+      + id          = (known after apply)
+      + name        = "RUNTIME_MONITORING"
+      + region      = "eu-central-1"
+      + status      = "DISABLED"
+
+      + additional_configuration {
+          + name   = "EC2_AGENT_MANAGEMENT"
+          + status = "DISABLED"
+        }
+      + additional_configuration {
+          + name   = "ECS_FARGATE_AGENT_MANAGEMENT"
+          + status = "DISABLED"
+        }
+      + additional_configuration {
+          + name   = "EKS_ADDON_MANAGEMENT"
+          + status = "DISABLED"
+        }
+    }
+
+  # module.guardduty.aws_guardduty_detector_feature.this["S3_DATA_EVENTS"] will be created
+  + resource "aws_guardduty_detector_feature" "this" {
+      + detector_id = (known after apply)
+      + id          = (known after apply)
+      + name        = "S3_DATA_EVENTS"
+      + region      = "eu-central-1"
+      + status      = "ENABLED"
+    }
+
+  # module.guardduty.aws_guardduty_publishing_destination.this[0] will be created
+  + resource "aws_guardduty_publishing_destination" "this" {
+      + arn              = (known after apply)
+      + destination_arn  = (known after apply)
+      + destination_id   = (known after apply)
+      + destination_type = "S3"
+      + detector_id      = (known after apply)
+      + id               = (known after apply)
+      + kms_key_arn      = (known after apply)
+      + region           = "eu-central-1"
+      + tags_all         = (known after apply)
+    }
+
+  # module.guardduty.aws_kms_alias.this[0] will be created
+  + resource "aws_kms_alias" "this" {
+      + arn            = (known after apply)
+      + id             = (known after apply)
+      + name           = "alias/guardduty-findings"
+      + name_prefix    = (known after apply)
+      + region         = "eu-central-1"
+      + target_key_arn = (known after apply)
+      + target_key_id  = (known after apply)
+    }
+
+  # module.guardduty.aws_kms_key.this[0] will be created
+  + resource "aws_kms_key" "this" {
+      + arn                                = (known after apply)
+      + bypass_policy_lockout_safety_check = false
+      + customer_master_key_spec           = "SYMMETRIC_DEFAULT"
+      + deletion_window_in_days            = 30
+      + description                        = "Encrypts GuardDuty findings exported to S3 and GuardDuty alerts in SNS (guardduty)."
+      + enable_key_rotation                = true
+      + id                                 = (known after apply)
+      + is_enabled                         = true
+      + key_id                             = (known after apply)
+      + key_usage                          = "ENCRYPT_DECRYPT"
+      + multi_region                       = (known after apply)
+      + policy                             = (known after apply)
+      + region                             = "eu-central-1"
+      + rotation_period_in_days            = (known after apply)
+      + tags_all                           = (known after apply)
+    }
+
+  # module.guardduty.aws_s3_bucket.findings[0] will be created
+  + resource "aws_s3_bucket" "findings" {
+      + acceleration_status         = (known after apply)
+      + acl                         = (known after apply)
+      + arn                         = (known after apply)
+      + bucket                      = "guardduty-findings-123456789012-eu-central-1"
+      + bucket_domain_name          = (known after apply)
+      + bucket_namespace            = (known after apply)
+      + bucket_prefix               = (known after apply)
+      + bucket_region               = (known after apply)
+      + bucket_regional_domain_name = (known after apply)
+      + force_destroy               = false
+      + hosted_zone_id              = (known after apply)
+      + id                          = (known after apply)
+      + object_lock_enabled         = (known after apply)
+      + policy                      = (known after apply)
+      + region                      = "eu-central-1"
+      + request_payer               = (known after apply)
+      + tags_all                    = (known after apply)
+      + website_domain              = (known after apply)
+      + website_endpoint            = (known after apply)
+
+      + cors_rule (known after apply)
+
+      + grant (known after apply)
+
+      + lifecycle_rule (known after apply)
+
+      + logging (known after apply)
+
+      + object_lock_configuration (known after apply)
+
+      + replication_configuration (known after apply)
+
+      + server_side_encryption_configuration (known after apply)
+
+      + versioning (known after apply)
+
+      + website (known after apply)
+    }
+
+  # module.guardduty.aws_s3_bucket_lifecycle_configuration.findings[0] will be created
+  + resource "aws_s3_bucket_lifecycle_configuration" "findings" {
+      + bucket                                 = (known after apply)
+      + expected_bucket_owner                  = (known after apply)
+      + id                                     = (known after apply)
+      + region                                 = "eu-central-1"
+      + transition_default_minimum_object_size = "all_storage_classes_128K"
+
+      + rule {
+          + id     = "findings-retention"
+          + status = "Enabled"
+            # (1 unchanged attribute hidden)
+
+          + abort_incomplete_multipart_upload {
+              + days_after_initiation = 7
+            }
+
+          + expiration {
+              + days                         = 365
+              + expired_object_delete_marker = false
+            }
+
+          + filter {
+                # (1 unchanged attribute hidden)
+            }
+
+          + noncurrent_version_expiration {
+              + noncurrent_days = 30
+            }
+
+          + transition {
+              + days          = 90
+              + storage_class = "GLACIER"
+            }
+        }
+    }
+
+  # module.guardduty.aws_s3_bucket_ownership_controls.findings[0] will be created
+  + resource "aws_s3_bucket_ownership_controls" "findings" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+      + region = "eu-central-1"
+
+      + rule {
+          + object_ownership = "BucketOwnerEnforced"
+        }
+    }
+
+  # module.guardduty.aws_s3_bucket_policy.findings[0] will be created
+  + resource "aws_s3_bucket_policy" "findings" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+      + policy = (known after apply)
+      + region = "eu-central-1"
+    }
+
+  # module.guardduty.aws_s3_bucket_public_access_block.findings[0] will be created
+  + resource "aws_s3_bucket_public_access_block" "findings" {
+      + block_public_acls       = true
+      + block_public_policy     = true
+      + bucket                  = (known after apply)
+      + id                      = (known after apply)
+      + ignore_public_acls      = true
+      + region                  = "eu-central-1"
+      + restrict_public_buckets = true
+    }
+
+  # module.guardduty.aws_s3_bucket_server_side_encryption_configuration.findings[0] will be created
+  + resource "aws_s3_bucket_server_side_encryption_configuration" "findings" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+      + region = "eu-central-1"
+
+      + rule {
+          + blocked_encryption_types = (known after apply)
+          + bucket_key_enabled       = true
+
+          + apply_server_side_encryption_by_default {
+              + kms_master_key_id = (known after apply)
+              + sse_algorithm     = "aws:kms"
+            }
+        }
+    }
+
+  # module.guardduty.aws_s3_bucket_versioning.findings[0] will be created
+  + resource "aws_s3_bucket_versioning" "findings" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+      + region = "eu-central-1"
+
+      + versioning_configuration {
+          + mfa_delete = (known after apply)
+          + status     = "Enabled"
+        }
+    }
+
+  # module.guardduty.aws_sns_topic.this[0] will be created
+  + resource "aws_sns_topic" "this" {
+      + arn                         = (known after apply)
+      + beginning_archive_time      = (known after apply)
+      + content_based_deduplication = false
+      + fifo_throughput_scope       = (known after apply)
+      + fifo_topic                  = false
+      + id                          = (known after apply)
+      + kms_master_key_id           = (known after apply)
+      + maximum_message_size        = (known after apply)
+      + name                        = "guardduty-findings-alert"
+      + name_prefix                 = (known after apply)
+      + owner                       = (known after apply)
+      + policy                      = (known after apply)
+      + region                      = "eu-central-1"
+      + signature_version           = (known after apply)
+      + tags_all                    = (known after apply)
+      + tracing_config              = (known after apply)
+    }
+
+  # module.guardduty.aws_sns_topic_policy.this[0] will be created
+  + resource "aws_sns_topic_policy" "this" {
+      + arn    = (known after apply)
+      + id     = (known after apply)
+      + owner  = (known after apply)
+      + policy = (known after apply)
+      + region = "eu-central-1"
+    }
+
+Plan: 20 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + detector_id   = (known after apply)
+  + kms_key_arn   = (known after apply)
+  + s3_bucket_arn = (known after apply)
+  + sns_topic_arn = (known after apply)
+
+─────────────────────────────────────────────────────────────────────────────
+
+Note: You didn't use the -out option to save this plan, so Terraform can't
+guarantee to take exactly these actions if you run "terraform apply" now.

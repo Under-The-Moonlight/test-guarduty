@@ -1,0 +1,21 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+*.tfplan
+.terraformrc
+terraform.rc
+
+# Lock files are committed for the examples (root modules) only.
+modules/**/.terraform.lock.hcl
+
+.tflint.d/
