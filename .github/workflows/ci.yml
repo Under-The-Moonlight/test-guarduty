@@ -11,6 +11,7 @@ permissions:
 env:
   TF_VERSION: 1.16.4
   TFLINT_VERSION: v0.64.0
+  TF_DOCS_VERSION: v0.24.0
 
 jobs:
   fmt:
@@ -78,8 +79,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: terraform-docs/gh-actions@v1
-        with:
-          working-dir: modules/guardduty,modules/guardduty-organization
-          config-file: .terraform-docs.yml
-          fail-on-diff: true
+      - name: Install terraform-docs
+        run: |
+          curl -sSLo /tmp/terraform-docs.tar.gz "https://github.com/terraform-docs/terraform-docs/releases/download/${TF_DOCS_VERSION}/terraform-docs-${TF_DOCS_VERSION}-linux-amd64.tar.gz"
+          sudo tar -xzf /tmp/terraform-docs.tar.gz -C /usr/local/bin terraform-docs
+      - run: terraform-docs --output-check modules/guardduty
+      - run: terraform-docs --output-check modules/guardduty-organization
