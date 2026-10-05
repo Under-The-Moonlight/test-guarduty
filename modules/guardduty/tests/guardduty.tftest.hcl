@@ -343,24 +343,8 @@ run "criterion_without_operator" {
   expect_failures = [var.suppression_rules]
 }
 
-run "glacier_after_expiration" {
-  command = plan
-
-  variables {
-    findings_retention_days          = 30
-    findings_glacier_transition_days = 60
-  }
-
-  expect_failures = [var.findings_glacier_transition_days]
-}
-
 run "lifecycle_rules" {
   command = plan
-
-  assert {
-    condition     = length([for r in aws_s3_bucket_lifecycle_configuration.findings["findings"].rule : r if length(r.transition) > 0]) == 0
-    error_message = "No Glacier transition by default."
-  }
 
   assert {
     condition     = contains([for r in aws_s3_bucket_lifecycle_configuration.findings["findings"].rule : r.id], "expired-delete-markers")

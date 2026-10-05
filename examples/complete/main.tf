@@ -31,7 +31,6 @@ module "guardduty" {
   enable_s3_export                           = true
   create_kms_key                             = true
   kms_key_deletion_window_in_days            = 30
-  findings_glacier_transition_days           = 90
   findings_retention_days                    = 730
   findings_noncurrent_version_retention_days = 30
   s3_access_logging = var.access_logs_bucket == null ? null : {

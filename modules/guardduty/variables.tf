@@ -140,24 +140,6 @@ variable "findings_retention_days" {
   }
 }
 
-variable "findings_glacier_transition_days" {
-  description = "Number of days after which exported findings are transitioned to S3 Glacier Flexible Retrieval. Disabled by default: S3 does not transition objects smaller than 128 KB, and most GuardDuty export files are smaller than that."
-  type        = number
-  default     = null
-
-  validation {
-    condition = var.findings_glacier_transition_days == null || (
-      try(var.findings_glacier_transition_days >= 1 && floor(var.findings_glacier_transition_days) == var.findings_glacier_transition_days, false)
-    )
-    error_message = "findings_glacier_transition_days must be a positive integer or null."
-  }
-
-  validation {
-    condition     = var.findings_glacier_transition_days == null || try(var.findings_glacier_transition_days < var.findings_retention_days, false)
-    error_message = "findings_glacier_transition_days must be lower than findings_retention_days."
-  }
-}
-
 variable "findings_noncurrent_version_retention_days" {
   description = "Number of days noncurrent (overwritten or deleted) object versions are kept before permanent deletion."
   type        = number

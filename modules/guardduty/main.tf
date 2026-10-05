@@ -277,15 +277,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "findings" {
 
     filter {}
 
-    dynamic "transition" {
-      for_each = var.findings_glacier_transition_days == null ? [] : [var.findings_glacier_transition_days]
-
-      content {
-        days          = transition.value
-        storage_class = "GLACIER"
-      }
-    }
-
     expiration {
       days = var.findings_retention_days
     }
