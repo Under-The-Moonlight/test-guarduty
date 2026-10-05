@@ -16,8 +16,8 @@ module "guardduty" {
 
   name = "guardduty-org"
 
-  enable_eks_runtime_monitoring = true
-  alert_email_addresses         = var.alert_email_addresses
+  eks_runtime_monitoring = { enabled = true }
+  alert_email_addresses  = var.alert_email_addresses
 }
 
 module "guardduty_organization" {

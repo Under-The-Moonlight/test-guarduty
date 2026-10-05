@@ -18,13 +18,14 @@ module "guardduty" {
 
   enable_s3_protection                 = true
   enable_eks_audit_log_monitoring      = true
-  enable_eks_runtime_monitoring        = true
   enable_rds_login_activity_monitoring = true
   enable_ec2_malware_protection        = true
-  runtime_monitoring_agent_management = {
-    eks_addon   = true
-    ecs_fargate = true
-    ec2         = true
+  enable_lambda_protection             = true
+  eks_runtime_monitoring = {
+    enabled                  = true
+    manage_eks_addon         = true
+    manage_ecs_fargate_agent = true
+    manage_ec2_agent         = true
   }
 
   enable_s3_export                           = true
@@ -37,9 +38,10 @@ module "guardduty" {
     target_bucket = var.access_logs_bucket
   }
 
-  enable_alerts            = true
-  alert_severity_threshold = 4
-  alert_email_addresses    = var.alert_email_addresses
+  enable_alerts               = true
+  alert_severity_threshold    = 4
+  alert_email_addresses       = var.alert_email_addresses
+  alert_dead_letter_queue_arn = var.alert_dead_letter_queue_arn
 
   suppression_rules = [
     {

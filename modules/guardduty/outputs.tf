@@ -15,12 +15,12 @@ output "features" {
 
 output "s3_bucket_arn" {
   description = "ARN of the S3 bucket that receives exported findings (null when export is disabled)."
-  value       = try(aws_s3_bucket.findings[0].arn, null)
+  value       = one(values(aws_s3_bucket.findings)[*].arn)
 }
 
 output "s3_bucket_name" {
   description = "Name of the S3 bucket that receives exported findings (null when export is disabled)."
-  value       = try(aws_s3_bucket.findings[0].id, null)
+  value       = one(values(aws_s3_bucket.findings)[*].id)
 }
 
 output "kms_key_arn" {

@@ -1,11 +1,11 @@
-module.guardduty.data.aws_caller_identity.current: Reading...
-module.guardduty_organization.data.aws_caller_identity.admin: Reading...
 module.guardduty.data.aws_partition.current: Reading...
 module.guardduty.data.aws_region.current: Reading...
-module.guardduty.data.aws_partition.current: Read complete after 0s [id=aws]
+module.guardduty_organization.data.aws_caller_identity.admin: Reading...
+module.guardduty.data.aws_caller_identity.current: Reading...
 module.guardduty.data.aws_region.current: Read complete after 0s [id=eu-central-1]
-module.guardduty_organization.data.aws_caller_identity.admin: Read complete after 0s [id=210987654321]
+module.guardduty.data.aws_partition.current: Read complete after 0s [id=aws]
 module.guardduty.data.aws_caller_identity.current: Read complete after 0s [id=210987654321]
+module.guardduty_organization.data.aws_caller_identity.admin: Read complete after 0s [id=210987654321]
 
 Terraform used the selected providers to generate the following execution
 plan. Resource actions are indicated with the following symbols:
@@ -385,6 +385,15 @@ Terraform will perform the following actions:
       + status      = "ENABLED"
     }
 
+  # module.guardduty.aws_guardduty_detector_feature.this["LAMBDA_NETWORK_LOGS"] will be created
+  + resource "aws_guardduty_detector_feature" "this" {
+      + detector_id = (known after apply)
+      + id          = (known after apply)
+      + name        = "LAMBDA_NETWORK_LOGS"
+      + region      = "eu-central-1"
+      + status      = "ENABLED"
+    }
+
   # module.guardduty.aws_guardduty_detector_feature.this["RDS_LOGIN_EVENTS"] will be created
   + resource "aws_guardduty_detector_feature" "this" {
       + detector_id = (known after apply)
@@ -425,7 +434,7 @@ Terraform will perform the following actions:
       + status      = "ENABLED"
     }
 
-  # module.guardduty.aws_guardduty_publishing_destination.this[0] will be created
+  # module.guardduty.aws_guardduty_publishing_destination.this["findings"] will be created
   + resource "aws_guardduty_publishing_destination" "this" {
       + arn              = (known after apply)
       + destination_arn  = (known after apply)
@@ -468,7 +477,7 @@ Terraform will perform the following actions:
       + tags_all                           = (known after apply)
     }
 
-  # module.guardduty.aws_s3_bucket.findings[0] will be created
+  # module.guardduty.aws_s3_bucket.findings["findings"] will be created
   + resource "aws_s3_bucket" "findings" {
       + acceleration_status         = (known after apply)
       + acl                         = (known after apply)
@@ -509,7 +518,7 @@ Terraform will perform the following actions:
       + website (known after apply)
     }
 
-  # module.guardduty.aws_s3_bucket_lifecycle_configuration.findings[0] will be created
+  # module.guardduty.aws_s3_bucket_lifecycle_configuration.findings["findings"] will be created
   + resource "aws_s3_bucket_lifecycle_configuration" "findings" {
       + bucket                                 = (known after apply)
       + expected_bucket_owner                  = (known after apply)
@@ -538,15 +547,24 @@ Terraform will perform the following actions:
           + noncurrent_version_expiration {
               + noncurrent_days = 30
             }
+        }
+      + rule {
+          + id     = "expired-delete-markers"
+          + status = "Enabled"
+            # (1 unchanged attribute hidden)
 
-          + transition {
-              + days          = 90
-              + storage_class = "GLACIER"
+          + expiration {
+              + days                         = 0
+              + expired_object_delete_marker = true
+            }
+
+          + filter {
+                # (1 unchanged attribute hidden)
             }
         }
     }
 
-  # module.guardduty.aws_s3_bucket_ownership_controls.findings[0] will be created
+  # module.guardduty.aws_s3_bucket_ownership_controls.findings["findings"] will be created
   + resource "aws_s3_bucket_ownership_controls" "findings" {
       + bucket = (known after apply)
       + id     = (known after apply)
@@ -557,7 +575,7 @@ Terraform will perform the following actions:
         }
     }
 
-  # module.guardduty.aws_s3_bucket_policy.findings[0] will be created
+  # module.guardduty.aws_s3_bucket_policy.findings["findings"] will be created
   + resource "aws_s3_bucket_policy" "findings" {
       + bucket = (known after apply)
       + id     = (known after apply)
@@ -565,7 +583,7 @@ Terraform will perform the following actions:
       + region = "eu-central-1"
     }
 
-  # module.guardduty.aws_s3_bucket_public_access_block.findings[0] will be created
+  # module.guardduty.aws_s3_bucket_public_access_block.findings["findings"] will be created
   + resource "aws_s3_bucket_public_access_block" "findings" {
       + block_public_acls       = true
       + block_public_policy     = true
@@ -576,7 +594,7 @@ Terraform will perform the following actions:
       + restrict_public_buckets = true
     }
 
-  # module.guardduty.aws_s3_bucket_server_side_encryption_configuration.findings[0] will be created
+  # module.guardduty.aws_s3_bucket_server_side_encryption_configuration.findings["findings"] will be created
   + resource "aws_s3_bucket_server_side_encryption_configuration" "findings" {
       + bucket = (known after apply)
       + id     = (known after apply)
@@ -593,7 +611,7 @@ Terraform will perform the following actions:
         }
     }
 
-  # module.guardduty.aws_s3_bucket_versioning.findings[0] will be created
+  # module.guardduty.aws_s3_bucket_versioning.findings["findings"] will be created
   + resource "aws_s3_bucket_versioning" "findings" {
       + bucket = (known after apply)
       + id     = (known after apply)
@@ -669,6 +687,15 @@ Terraform will perform the following actions:
       + region      = "eu-central-1"
     }
 
+  # module.guardduty_organization.aws_guardduty_organization_configuration_feature.this["LAMBDA_NETWORK_LOGS"] will be created
+  + resource "aws_guardduty_organization_configuration_feature" "this" {
+      + auto_enable = "ALL"
+      + detector_id = (known after apply)
+      + id          = (known after apply)
+      + name        = "LAMBDA_NETWORK_LOGS"
+      + region      = "eu-central-1"
+    }
+
   # module.guardduty_organization.aws_guardduty_organization_configuration_feature.this["RDS_LOGIN_EVENTS"] will be created
   + resource "aws_guardduty_organization_configuration_feature" "this" {
       + auto_enable = "ALL"
@@ -709,14 +736,9 @@ Terraform will perform the following actions:
       + region      = "eu-central-1"
     }
 
-Plan: 27 to add, 0 to change, 0 to destroy.
+Plan: 29 to add, 0 to change, 0 to destroy.
 
 Changes to Outputs:
   + admin_account_id = "210987654321"
   + detector_id      = (known after apply)
   + sns_topic_arn    = (known after apply)
-
-─────────────────────────────────────────────────────────────────────────────
-
-Note: You didn't use the -out option to save this plan, so Terraform can't
-guarantee to take exactly these actions if you run "terraform apply" now.

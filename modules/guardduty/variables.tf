@@ -2,10 +2,11 @@ variable "name" {
   description = "Name prefix used for all resources created by the module (S3 bucket, KMS alias, SNS topic, EventBridge rule)."
   type        = string
   default     = "guardduty"
+  nullable    = false
 
   validation {
-    condition     = can(regex("^[a-z0-9][a-z0-9-]{0,30}[a-z0-9]$", var.name))
-    error_message = "name must be 2-32 characters long, contain only lowercase letters, digits and hyphens, and must not start or end with a hyphen."
+    condition     = can(regex("^[a-z0-9][a-z0-9-]{0,24}[a-z0-9]$", var.name))
+    error_message = "name must be 2-26 characters long (so the default bucket name fits in 63), contain only lowercase letters, digits and hyphens, and must not start or end with a hyphen."
   }
 }
 
@@ -24,12 +25,14 @@ variable "tags" {
   description = "Tags applied to every taggable resource created by the module."
   type        = map(string)
   default     = {}
+  nullable    = false
 }
 
 variable "finding_publishing_frequency" {
   description = "How often updates to existing findings are published to EventBridge and S3. New findings are always exported within ~5 minutes."
   type        = string
   default     = "FIFTEEN_MINUTES"
+  nullable    = false
 
   validation {
     condition     = contains(["FIFTEEN_MINUTES", "ONE_HOUR", "SIX_HOURS"], var.finding_publishing_frequency)
@@ -41,32 +44,30 @@ variable "enable_s3_protection" {
   description = "Enable S3 Protection (monitoring of S3 data events, feature S3_DATA_EVENTS)."
   type        = bool
   default     = true
+  nullable    = false
 }
 
 variable "enable_eks_audit_log_monitoring" {
   description = "Enable EKS Audit Log Monitoring (feature EKS_AUDIT_LOGS)."
   type        = bool
   default     = true
+  nullable    = false
 }
 
-variable "enable_eks_runtime_monitoring" {
-  description = "Enable EKS Runtime Monitoring (feature RUNTIME_MONITORING). Requires the GuardDuty security agent on the clusters, see `runtime_monitoring_agent_management`."
-  type        = bool
-  default     = false
-}
-
-variable "runtime_monitoring_agent_management" {
+variable "eks_runtime_monitoring" {
   description = <<-EOT
-    Controls whether GuardDuty automatically deploys and manages its security agent when Runtime Monitoring is enabled.
-    `eks_addon`   - manage the `aws-guardduty-agent` EKS add-on on all clusters (EKS_ADDON_MANAGEMENT).
-    `ecs_fargate` - manage the sidecar agent for ECS Fargate tasks (ECS_FARGATE_AGENT_MANAGEMENT).
-    `ec2`         - manage the agent on EC2 instances through SSM (EC2_AGENT_MANAGEMENT).
-    Set `eks_addon = false` if you deploy the agent yourself (e.g. via Terraform/Helm per cluster).
+    EKS Runtime Monitoring (feature RUNTIME_MONITORING). It needs the GuardDuty security agent on the clusters.
+    `enabled`                  - turn the feature on.
+    `manage_eks_addon`         - GuardDuty deploys and updates the `aws-guardduty-agent` EKS add-on (EKS_ADDON_MANAGEMENT).
+                                 Set to `false` if you install the agent yourself.
+    `manage_ecs_fargate_agent` - GuardDuty manages the agent for ECS Fargate tasks (ECS_FARGATE_AGENT_MANAGEMENT).
+    `manage_ec2_agent`         - GuardDuty manages the agent on EC2 instances through SSM (EC2_AGENT_MANAGEMENT).
   EOT
   type = object({
-    eks_addon   = optional(bool, true)
-    ecs_fargate = optional(bool, false)
-    ec2         = optional(bool, false)
+    enabled                  = optional(bool, false)
+    manage_eks_addon         = optional(bool, true)
+    manage_ecs_fargate_agent = optional(bool, false)
+    manage_ec2_agent         = optional(bool, false)
   })
   default  = {}
   nullable = false
@@ -76,18 +77,28 @@ variable "enable_rds_login_activity_monitoring" {
   description = "Enable RDS Login Activity Monitoring for Aurora / RDS databases (feature RDS_LOGIN_EVENTS)."
   type        = bool
   default     = true
+  nullable    = false
 }
 
 variable "enable_ec2_malware_protection" {
   description = "Enable GuardDuty-initiated Malware Protection for EC2 (EBS volume scanning, feature EBS_MALWARE_PROTECTION)."
   type        = bool
   default     = true
+  nullable    = false
+}
+
+variable "enable_lambda_protection" {
+  description = "Enable Lambda Protection (network activity of Lambda functions, feature LAMBDA_NETWORK_LOGS). AWS enables it by default on new detectors."
+  type        = bool
+  default     = true
+  nullable    = false
 }
 
 variable "enable_s3_export" {
   description = "Export findings to a KMS-encrypted S3 bucket created by the module."
   type        = bool
   default     = true
+  nullable    = false
 }
 
 variable "s3_bucket_name" {
@@ -105,6 +116,7 @@ variable "s3_force_destroy" {
   description = "Allow Terraform to delete the findings bucket even if it still contains objects. Keep `false` outside of test environments."
   type        = bool
   default     = false
+  nullable    = false
 }
 
 variable "s3_access_logging" {
@@ -120,6 +132,7 @@ variable "findings_retention_days" {
   description = "Number of days after which exported findings are expired from the bucket."
   type        = number
   default     = 365
+  nullable    = false
 
   validation {
     condition     = var.findings_retention_days >= 1 && floor(var.findings_retention_days) == var.findings_retention_days
@@ -128,9 +141,9 @@ variable "findings_retention_days" {
 }
 
 variable "findings_glacier_transition_days" {
-  description = "Number of days after which exported findings are transitioned to S3 Glacier Flexible Retrieval. Set to `null` to disable the transition."
+  description = "Number of days after which exported findings are transitioned to S3 Glacier Flexible Retrieval. Disabled by default: S3 does not transition objects smaller than 128 KB, and most GuardDuty export files are smaller than that."
   type        = number
-  default     = 90
+  default     = null
 
   validation {
     condition = var.findings_glacier_transition_days == null || (
@@ -149,6 +162,7 @@ variable "findings_noncurrent_version_retention_days" {
   description = "Number of days noncurrent (overwritten or deleted) object versions are kept before permanent deletion."
   type        = number
   default     = 30
+  nullable    = false
 
   validation {
     condition     = var.findings_noncurrent_version_retention_days >= 1 && floor(var.findings_noncurrent_version_retention_days) == var.findings_noncurrent_version_retention_days
@@ -160,6 +174,7 @@ variable "create_kms_key" {
   description = "Create a customer managed KMS key used to encrypt the findings bucket and the SNS topic. When `false`, `kms_key_arn` must be provided."
   type        = bool
   default     = true
+  nullable    = false
 }
 
 variable "kms_key_arn" {
@@ -182,6 +197,7 @@ variable "kms_key_deletion_window_in_days" {
   description = "Waiting period before the module-created KMS key is deleted after `terraform destroy`."
   type        = number
   default     = 30
+  nullable    = false
 
   validation {
     condition     = var.kms_key_deletion_window_in_days >= 7 && var.kms_key_deletion_window_in_days <= 30
@@ -193,12 +209,14 @@ variable "enable_alerts" {
   description = "Create an EventBridge rule that forwards findings at or above `alert_severity_threshold` to SNS."
   type        = bool
   default     = true
+  nullable    = false
 }
 
 variable "alert_severity_threshold" {
   description = "Minimum finding severity that triggers an alert. GuardDuty severity ranges: Low 1.0-3.9, Medium 4.0-6.9, High 7.0-8.9, Critical 9.0-10.0."
   type        = number
   default     = 7
+  nullable    = false
 
   validation {
     condition     = var.alert_severity_threshold >= 1 && var.alert_severity_threshold <= 10
@@ -207,9 +225,21 @@ variable "alert_severity_threshold" {
 }
 
 variable "create_sns_topic" {
-  description = "Create the SNS topic for alerts. When `false`, `sns_topic_arn` must be provided and its topic policy must allow `events.amazonaws.com` to publish."
+  description = "Create the SNS topic for alerts. When `false`, `sns_topic_arn` must be provided and its topic policy must allow `events.amazonaws.com` to publish. If that topic is KMS-encrypted, its key policy must also allow `events.amazonaws.com` to use the key."
   type        = bool
   default     = true
+  nullable    = false
+}
+
+variable "alert_dead_letter_queue_arn" {
+  description = "ARN of an existing SQS queue for alerts EventBridge fails to deliver to SNS. Its queue policy must allow `events.amazonaws.com` to `sqs:SendMessage` from the alert rule."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.alert_dead_letter_queue_arn == null || can(regex("^arn:aws[a-z-]*:sqs:[a-z0-9-]+:[0-9]{12}:[A-Za-z0-9_-]+$", var.alert_dead_letter_queue_arn))
+    error_message = "alert_dead_letter_queue_arn must be a valid SQS queue ARN."
+  }
 }
 
 variable "sns_topic_arn" {

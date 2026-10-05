@@ -21,7 +21,7 @@ variable "tags" {
 variable "alert_email_addresses" {
   description = "Email addresses subscribed to GuardDuty alerts."
   type        = list(string)
-  default     = ["security-alerts@example.com"]
+  default     = []
 }
 
 variable "trusted_scanner_ips" {
@@ -32,6 +32,12 @@ variable "trusted_scanner_ips" {
 
 variable "access_logs_bucket" {
   description = "Existing bucket for S3 server access logs of the findings bucket. Logging is disabled when null."
+  type        = string
+  default     = null
+}
+
+variable "alert_dead_letter_queue_arn" {
+  description = "Existing SQS queue for alerts that could not be delivered to SNS."
   type        = string
   default     = null
 }

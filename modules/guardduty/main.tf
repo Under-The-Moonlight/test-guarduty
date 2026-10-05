@@ -33,11 +33,11 @@ locals {
       additional_configuration = {}
     }
     RUNTIME_MONITORING = {
-      enabled = var.enable_eks_runtime_monitoring
+      enabled = var.eks_runtime_monitoring.enabled
       additional_configuration = {
-        EKS_ADDON_MANAGEMENT         = var.runtime_monitoring_agent_management.eks_addon
-        ECS_FARGATE_AGENT_MANAGEMENT = var.runtime_monitoring_agent_management.ecs_fargate
-        EC2_AGENT_MANAGEMENT         = var.runtime_monitoring_agent_management.ec2
+        EKS_ADDON_MANAGEMENT         = var.eks_runtime_monitoring.manage_eks_addon
+        ECS_FARGATE_AGENT_MANAGEMENT = var.eks_runtime_monitoring.manage_ecs_fargate_agent
+        EC2_AGENT_MANAGEMENT         = var.eks_runtime_monitoring.manage_ec2_agent
       }
     }
     RDS_LOGIN_EVENTS = {
@@ -46,6 +46,10 @@ locals {
     }
     EBS_MALWARE_PROTECTION = {
       enabled                  = var.enable_ec2_malware_protection
+      additional_configuration = {}
+    }
+    LAMBDA_NETWORK_LOGS = {
+      enabled                  = var.enable_lambda_protection
       additional_configuration = {}
     }
   }
@@ -59,6 +63,18 @@ resource "aws_guardduty_detector" "this" {
   finding_publishing_frequency = var.finding_publishing_frequency
 
   tags = var.tags
+
+  lifecycle {
+    precondition {
+      condition     = var.kms_key_arn == null || try(split(":", var.kms_key_arn)[3] == local.region, false)
+      error_message = "kms_key_arn must be a key in the region the module is deployed to (${local.region})."
+    }
+
+    precondition {
+      condition     = var.sns_topic_arn == null || try(split(":", var.sns_topic_arn)[3] == local.region, false)
+      error_message = "sns_topic_arn must be a topic in the region the module is deployed to (${local.region})."
+    }
+  }
 }
 
 resource "aws_guardduty_detector_feature" "this" {
@@ -171,14 +187,10 @@ resource "aws_kms_alias" "this" {
 }
 
 resource "aws_s3_bucket" "findings" {
-  #checkov:skip=CKV2_AWS_6:Public access block is configured in aws_s3_bucket_public_access_block.findings (checkov does not link count-indexed resources).
-  #checkov:skip=CKV_AWS_21:Versioning is configured in aws_s3_bucket_versioning.findings (checkov does not link count-indexed resources).
-  #checkov:skip=CKV_AWS_145:SSE-KMS is configured in aws_s3_bucket_server_side_encryption_configuration.findings (checkov does not link count-indexed resources).
-  #checkov:skip=CKV2_AWS_61:Lifecycle is configured in aws_s3_bucket_lifecycle_configuration.findings (checkov does not link count-indexed resources).
   #checkov:skip=CKV_AWS_18:Access logging is optional (var.s3_access_logging); it requires a separate, pre-existing log bucket.
   #checkov:skip=CKV_AWS_144:Cross-region replication is out of scope; findings are already replicated to EventBridge/SNS and can be re-exported.
   #checkov:skip=CKV2_AWS_62:Event notifications are not needed; alerting is done through EventBridge on the findings themselves.
-  count = var.enable_s3_export ? 1 : 0
+  for_each = var.enable_s3_export ? toset(["findings"]) : toset([])
 
   region = var.region
 
@@ -189,11 +201,11 @@ resource "aws_s3_bucket" "findings" {
 }
 
 resource "aws_s3_bucket_public_access_block" "findings" {
-  count = var.enable_s3_export ? 1 : 0
+  for_each = aws_s3_bucket.findings
 
   region = var.region
 
-  bucket                  = aws_s3_bucket.findings[0].id
+  bucket                  = each.value.id
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
@@ -201,11 +213,11 @@ resource "aws_s3_bucket_public_access_block" "findings" {
 }
 
 resource "aws_s3_bucket_ownership_controls" "findings" {
-  count = var.enable_s3_export ? 1 : 0
+  for_each = aws_s3_bucket.findings
 
   region = var.region
 
-  bucket = aws_s3_bucket.findings[0].id
+  bucket = each.value.id
 
   rule {
     object_ownership = "BucketOwnerEnforced"
@@ -213,21 +225,21 @@ resource "aws_s3_bucket_ownership_controls" "findings" {
 }
 
 resource "aws_s3_bucket_logging" "findings" {
-  count = var.enable_s3_export && var.s3_access_logging != null ? 1 : 0
+  for_each = var.s3_access_logging == null ? {} : aws_s3_bucket.findings
 
   region = var.region
 
-  bucket        = aws_s3_bucket.findings[0].id
+  bucket        = each.value.id
   target_bucket = var.s3_access_logging.target_bucket
   target_prefix = var.s3_access_logging.target_prefix
 }
 
 resource "aws_s3_bucket_versioning" "findings" {
-  count = var.enable_s3_export ? 1 : 0
+  for_each = aws_s3_bucket.findings
 
   region = var.region
 
-  bucket = aws_s3_bucket.findings[0].id
+  bucket = each.value.id
 
   versioning_configuration {
     status = "Enabled"
@@ -235,11 +247,11 @@ resource "aws_s3_bucket_versioning" "findings" {
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "findings" {
-  count = var.enable_s3_export ? 1 : 0
+  for_each = aws_s3_bucket.findings
 
   region = var.region
 
-  bucket = aws_s3_bucket.findings[0].id
+  bucket = each.value.id
 
   rule {
     bucket_key_enabled = true
@@ -252,11 +264,11 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "findings" {
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "findings" {
-  count = var.enable_s3_export ? 1 : 0
+  for_each = aws_s3_bucket.findings
 
   region = var.region
 
-  bucket = aws_s3_bucket.findings[0].id
+  bucket = each.value.id
 
   rule {
     id     = "findings-retention"
@@ -283,6 +295,17 @@ resource "aws_s3_bucket_lifecycle_configuration" "findings" {
 
     abort_incomplete_multipart_upload {
       days_after_initiation = 7
+    }
+  }
+
+  rule {
+    id     = "expired-delete-markers"
+    status = "Enabled"
+
+    filter {}
+
+    expiration {
+      expired_object_delete_marker = true
     }
   }
 
@@ -396,24 +419,24 @@ data "aws_iam_policy_document" "findings_bucket" {
 }
 
 resource "aws_s3_bucket_policy" "findings" {
-  count = var.enable_s3_export ? 1 : 0
+  for_each = aws_s3_bucket.findings
 
   region = var.region
 
-  bucket = aws_s3_bucket.findings[0].id
+  bucket = each.value.id
   policy = data.aws_iam_policy_document.findings_bucket[0].json
 
   depends_on = [aws_s3_bucket_public_access_block.findings]
 }
 
 resource "aws_guardduty_publishing_destination" "this" {
-  count = var.enable_s3_export ? 1 : 0
+  for_each = aws_s3_bucket.findings
 
   region = var.region
 
   detector_id      = aws_guardduty_detector.this.id
   destination_type = "S3"
-  destination_arn  = aws_s3_bucket.findings[0].arn
+  destination_arn  = each.value.arn
   kms_key_arn      = local.kms_key_arn
 
   tags = var.tags
@@ -522,6 +545,14 @@ resource "aws_cloudwatch_event_target" "sns" {
   rule      = aws_cloudwatch_event_rule.findings[0].name
   target_id = "sns"
   arn       = local.sns_topic_arn
+
+  dynamic "dead_letter_config" {
+    for_each = var.alert_dead_letter_queue_arn == null ? [] : [var.alert_dead_letter_queue_arn]
+
+    content {
+      arn = dead_letter_config.value
+    }
+  }
 
   depends_on = [aws_sns_topic_policy.this]
 }

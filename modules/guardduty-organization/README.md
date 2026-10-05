@@ -35,14 +35,14 @@ module "guardduty_organization" {
 | Name | Version |
 | ---- | ------- |
 | terraform | >= 1.9.0, < 2.0.0 |
-| aws | >= 6.0.0, < 7.0.0 |
+| aws | >= 6.36.0, < 7.0.0 |
 
 ## Providers
 
 | Name | Version |
 | ---- | ------- |
-| aws | >= 6.0.0, < 7.0.0 |
-| aws.management | >= 6.0.0, < 7.0.0 |
+| aws | >= 6.36.0, < 7.0.0 |
+| aws.management | >= 6.36.0, < 7.0.0 |
 
 ## Modules
 

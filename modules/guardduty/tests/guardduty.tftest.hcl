@@ -63,10 +63,10 @@ run "defaults" {
 
   assert {
     condition = alltrue([
-      for f in ["S3_DATA_EVENTS", "EKS_AUDIT_LOGS", "RDS_LOGIN_EVENTS", "EBS_MALWARE_PROTECTION"] :
+      for f in ["S3_DATA_EVENTS", "EKS_AUDIT_LOGS", "RDS_LOGIN_EVENTS", "EBS_MALWARE_PROTECTION", "LAMBDA_NETWORK_LOGS"] :
       aws_guardduty_detector_feature.this[f].status == "ENABLED"
     ])
-    error_message = "S3, EKS audit, RDS and EC2 malware protection should be enabled by default."
+    error_message = "S3, EKS audit, RDS, EC2 malware and Lambda protection should be enabled by default."
   }
 
   assert {
@@ -75,21 +75,21 @@ run "defaults" {
   }
 
   assert {
-    condition     = aws_s3_bucket.findings[0].bucket == "guardduty-findings-111122223333-eu-central-1"
+    condition     = aws_s3_bucket.findings["findings"].bucket == "guardduty-findings-111122223333-eu-central-1"
     error_message = "Bucket name should be derived from name, account and region."
   }
 
   assert {
-    condition     = one(aws_s3_bucket_server_side_encryption_configuration.findings[0].rule).apply_server_side_encryption_by_default[0].kms_master_key_id == aws_kms_key.this[0].arn
+    condition     = one(aws_s3_bucket_server_side_encryption_configuration.findings["findings"].rule).apply_server_side_encryption_by_default[0].kms_master_key_id == aws_kms_key.this[0].arn
     error_message = "Bucket must be encrypted with the module-created KMS key."
   }
 
   assert {
     condition = alltrue([
-      aws_s3_bucket_public_access_block.findings[0].block_public_acls,
-      aws_s3_bucket_public_access_block.findings[0].block_public_policy,
-      aws_s3_bucket_public_access_block.findings[0].ignore_public_acls,
-      aws_s3_bucket_public_access_block.findings[0].restrict_public_buckets,
+      aws_s3_bucket_public_access_block.findings["findings"].block_public_acls,
+      aws_s3_bucket_public_access_block.findings["findings"].block_public_policy,
+      aws_s3_bucket_public_access_block.findings["findings"].ignore_public_acls,
+      aws_s3_bucket_public_access_block.findings["findings"].restrict_public_buckets,
     ])
     error_message = "All public access must be blocked."
   }
@@ -110,7 +110,7 @@ run "defaults" {
   }
 
   assert {
-    condition     = aws_guardduty_publishing_destination.this[0].kms_key_arn == aws_kms_key.this[0].arn
+    condition     = aws_guardduty_publishing_destination.this["findings"].kms_key_arn == aws_kms_key.this[0].arn
     error_message = "Publishing destination must use the module KMS key."
   }
 
@@ -153,7 +153,8 @@ run "all_features_disabled" {
   variables {
     enable_s3_protection                 = false
     enable_eks_audit_log_monitoring      = false
-    enable_eks_runtime_monitoring        = false
+    eks_runtime_monitoring               = { enabled = false }
+    enable_lambda_protection             = false
     enable_rds_login_activity_monitoring = false
     enable_ec2_malware_protection        = false
   }
@@ -168,10 +169,10 @@ run "runtime_monitoring_with_agent_management" {
   command = plan
 
   variables {
-    enable_eks_runtime_monitoring = true
-    runtime_monitoring_agent_management = {
-      eks_addon   = true
-      ecs_fargate = false
+    eks_runtime_monitoring = {
+      enabled                  = true
+      manage_eks_addon         = true
+      manage_ecs_fargate_agent = false
     }
   }
 
@@ -188,7 +189,7 @@ run "runtime_monitoring_with_agent_management" {
       ECS_FARGATE_AGENT_MANAGEMENT = "DISABLED"
       EC2_AGENT_MANAGEMENT         = "DISABLED"
     }
-    error_message = "Agent management must follow runtime_monitoring_agent_management."
+    error_message = "Agent management must follow eks_runtime_monitoring."
   }
 }
 
@@ -206,7 +207,7 @@ run "external_kms_key" {
   }
 
   assert {
-    condition     = aws_guardduty_publishing_destination.this[0].kms_key_arn == var.kms_key_arn
+    condition     = aws_guardduty_publishing_destination.this["findings"].kms_key_arn == var.kms_key_arn
     error_message = "Publishing destination must use the external KMS key."
   }
 
@@ -333,4 +334,66 @@ run "glacier_after_expiration" {
   }
 
   expect_failures = [var.findings_glacier_transition_days]
+}
+
+run "lifecycle_rules" {
+  command = plan
+
+  assert {
+    condition     = length([for r in aws_s3_bucket_lifecycle_configuration.findings["findings"].rule : r if length(r.transition) > 0]) == 0
+    error_message = "No Glacier transition by default."
+  }
+
+  assert {
+    condition     = contains([for r in aws_s3_bucket_lifecycle_configuration.findings["findings"].rule : r.id], "expired-delete-markers")
+    error_message = "Expired delete markers must be cleaned up."
+  }
+}
+
+run "null_inputs_fall_back_to_defaults" {
+  command = plan
+
+  variables {
+    enable_alerts            = null
+    alert_severity_threshold = null
+  }
+
+  assert {
+    condition     = jsondecode(aws_cloudwatch_event_rule.findings[0].event_pattern).detail.severity[0].numeric[1] == 7
+    error_message = "null must fall back to the default values."
+  }
+}
+
+run "dead_letter_queue" {
+  command = plan
+
+  variables {
+    alert_dead_letter_queue_arn = "arn:aws:sqs:eu-central-1:111122223333:guardduty-alerts-dlq"
+  }
+
+  assert {
+    condition     = aws_cloudwatch_event_target.sns[0].dead_letter_config[0].arn == var.alert_dead_letter_queue_arn
+    error_message = "Dead-letter queue must be attached to the alert target."
+  }
+}
+
+run "bucket_name_too_long" {
+  command = plan
+
+  variables {
+    name = "a-too-long-name-for-buckets"
+  }
+
+  expect_failures = [var.name]
+}
+
+run "kms_key_in_other_region" {
+  command = plan
+
+  variables {
+    create_kms_key = false
+    kms_key_arn    = "arn:aws:kms:us-east-1:111122223333:key/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+  }
+
+  expect_failures = [aws_guardduty_detector.this]
 }
