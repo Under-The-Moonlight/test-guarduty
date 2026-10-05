@@ -145,9 +145,9 @@ data "aws_iam_policy_document" "kms_service_access" {
 }
 
 data "aws_iam_policy_document" "kms" {
-  #checkov:skip=CKV_AWS_109:Key policy: "Resource: *" refers to this key only; the root statement is the AWS default that delegates access to IAM.
-  #checkov:skip=CKV_AWS_111:Key policy: "Resource: *" refers to this key only; the root statement is the AWS default that delegates access to IAM.
-  #checkov:skip=CKV_AWS_356:Key policy: "Resource: *" refers to this key only.
+  #checkov:skip=CKV_AWS_109:In a key policy "*" means this key (AWS KMS docs)
+  #checkov:skip=CKV_AWS_111:In a key policy "*" means this key (AWS KMS docs)
+  #checkov:skip=CKV_AWS_356:In a key policy "*" means this key (AWS KMS docs)
   count = local.create_kms_key ? 1 : 0
 
   source_policy_documents = [data.aws_iam_policy_document.kms_service_access.json]
