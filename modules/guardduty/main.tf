@@ -117,10 +117,11 @@ data "aws_iam_policy_document" "kms_service_access" {
         values   = [local.account_id]
       }
 
+      # only one detector per account and region, so this is ours without depending on it
       condition {
-        test     = "StringEquals"
+        test     = "ArnLike"
         variable = "aws:SourceArn"
-        values   = [aws_guardduty_detector.this.arn]
+        values   = ["arn:${local.partition}:guardduty:${local.region}:${local.account_id}:detector/*"]
       }
     }
   }

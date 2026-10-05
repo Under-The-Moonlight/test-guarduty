@@ -119,17 +119,14 @@ data "aws_iam_policy_document" "security_key" {
 
 resource "aws_kms_key" "security" {
   enable_key_rotation = true
-}
-
-resource "aws_kms_key_policy" "security" {
-  key_id = aws_kms_key.security.id
-  policy = data.aws_iam_policy_document.security_key.json
+  policy              = data.aws_iam_policy_document.security_key.json
 }
 ```
 
 The key must be in the same region as the module. The `kms_key_policy_statements_json` output contains what GuardDuty
-(`kms:GenerateDataKey`, scoped to the detector) and EventBridge (for the encrypted SNS topic) need. The policy is set
-with a separate `aws_kms_key_policy` resource, because it depends on the detector ARN, which only exists after the key.
+(`kms:GenerateDataKey`) and EventBridge (for the encrypted SNS topic) need. It doesn't depend on the detector (GuardDuty
+access is scoped to detectors of this account and region, and there can only be one), so the key gets its full policy
+before the module creates the publishing destination.
 
 ### External SNS topic and dead-letter queue
 
@@ -191,7 +188,7 @@ The management account is not auto-enabled; the administrator has to add it as a
 | Feature management | Features are managed with `aws_guardduty_detector_feature` (the `datasources` block is deprecated). Every feature the module supports is always set explicitly to `ENABLED` or `DISABLED`, so the result never depends on what AWS enables by default on new detectors. |
 | EKS Runtime Monitoring | Implemented through the `RUNTIME_MONITORING` feature, which superseded `EKS_RUNTIME_MONITORING` (the two cannot be enabled at the same time). The feature and its agent management are one variable, `eks_runtime_monitoring`: `EKS_ADDON_MANAGEMENT` (default on), ECS Fargate and EC2 (default off). Runtime Monitoring itself is opt-in because it deploys an agent into the clusters. |
 | Bucket policy | GuardDuty may only `s3:GetBucketLocation` / `s3:PutObject` with `aws:SourceAccount` + `aws:SourceArn` = this detector (confused-deputy protection). Uploads without SSE-KMS or with a different key are denied, and every non-TLS request is denied. ACLs are disabled (`BucketOwnerEnforced`) and all public access is blocked. |
-| Key policy | The AWS default root statement (delegates key access to IAM in the same account, prevents an unmanageable key), GuardDuty `kms:GenerateDataKey` scoped to this detector, and `kms:GenerateDataKey`/`kms:Decrypt` for EventBridge, as documented by AWS for encrypted SNS targets. Rotation is enabled. |
+| Key policy | The AWS default root statement (delegates key access to IAM in the same account, prevents an unmanageable key), GuardDuty `kms:GenerateDataKey` scoped to the detectors of this account and region (there can only be one, and the policy doesn't have to wait for the detector), and `kms:GenerateDataKey`/`kms:Decrypt` for EventBridge, as documented by AWS for encrypted SNS targets. Rotation is enabled. |
 | SNS encryption | The topic uses the customer managed key: the AWS managed `alias/aws/sns` key cannot be used by EventBridge because its policy can't be changed. The topic policy only lets this EventBridge rule (`aws:SourceArn`) publish and denies non-TLS publishing. |
 | Lifecycle | Findings expire after 365 days by default; noncurrent versions are removed after 30 days, expired delete markers and incomplete multipart uploads are cleaned up. The Glacier transition is optional and off by default: S3 doesn't transition objects under 128 KB, and most export files are smaller, so it would mostly add per-object transition costs. |
 | Severity threshold | Numeric (1-10) and matched with an EventBridge `numeric` filter (`>=`), so it also covers the Critical range (9.0-10.0) of Extended Threat Detection. |

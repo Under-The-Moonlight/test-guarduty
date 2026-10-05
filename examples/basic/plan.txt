@@ -1,9 +1,13 @@
-module.guardduty.data.aws_region.current: Reading...
 module.guardduty.data.aws_caller_identity.current: Reading...
 module.guardduty.data.aws_partition.current: Reading...
-module.guardduty.data.aws_region.current: Read complete after 0s [id=eu-central-1]
+module.guardduty.data.aws_region.current: Reading...
 module.guardduty.data.aws_partition.current: Read complete after 0s [id=aws]
+module.guardduty.data.aws_region.current: Read complete after 0s [id=eu-central-1]
 module.guardduty.data.aws_caller_identity.current: Read complete after 0s [id=123456789012]
+module.guardduty.data.aws_iam_policy_document.kms_service_access: Reading...
+module.guardduty.data.aws_iam_policy_document.kms_service_access: Read complete after 0s [id=609647335]
+module.guardduty.data.aws_iam_policy_document.kms[0]: Reading...
+module.guardduty.data.aws_iam_policy_document.kms[0]: Read complete after 0s [id=4154473508]
 
 Terraform used the selected providers to generate the following execution
 plan. Resource actions are indicated with the following symbols:
@@ -157,94 +161,6 @@ Terraform will perform the following actions:
                   + "*",
                 ]
               + type        = "*"
-            }
-        }
-    }
-
-  # module.guardduty.data.aws_iam_policy_document.kms[0] will be read during apply
-  # (config refers to values not yet known)
- <= data "aws_iam_policy_document" "kms" {
-      + id                      = (known after apply)
-      + json                    = (known after apply)
-      + minified_json           = (known after apply)
-      + source_policy_documents = [
-          + (known after apply),
-        ]
-
-      + statement {
-          + actions   = [
-              + "kms:*",
-            ]
-          + effect    = "Allow"
-          + resources = [
-              + "*",
-            ]
-          + sid       = "EnableIAMPolicies"
-
-          + principals {
-              + identifiers = [
-                  + "arn:aws:iam::123456789012:root",
-                ]
-              + type        = "AWS"
-            }
-        }
-    }
-
-  # module.guardduty.data.aws_iam_policy_document.kms_service_access will be read during apply
-  # (config refers to values not yet known)
- <= data "aws_iam_policy_document" "kms_service_access" {
-      + id            = (known after apply)
-      + json          = (known after apply)
-      + minified_json = (known after apply)
-
-      + statement {
-          + actions   = [
-              + "kms:GenerateDataKey",
-            ]
-          + effect    = "Allow"
-          + resources = [
-              + "*",
-            ]
-          + sid       = "AllowGuardDutyToEncryptFindings"
-
-          + condition {
-              + test     = "StringEquals"
-              + values   = [
-                  + "123456789012",
-                ]
-              + variable = "aws:SourceAccount"
-            }
-          + condition {
-              + test     = "StringEquals"
-              + values   = [
-                  + (known after apply),
-                ]
-              + variable = "aws:SourceArn"
-            }
-
-          + principals {
-              + identifiers = [
-                  + "guardduty.amazonaws.com",
-                ]
-              + type        = "Service"
-            }
-        }
-      + statement {
-          + actions   = [
-              + "kms:Decrypt",
-              + "kms:GenerateDataKey",
-            ]
-          + effect    = "Allow"
-          + resources = [
-              + "*",
-            ]
-          + sid       = "AllowEventBridgeToUseKeyForSNS"
-
-          + principals {
-              + identifiers = [
-                  + "events.amazonaws.com",
-                ]
-              + type        = "Service"
             }
         }
     }
@@ -469,7 +385,51 @@ Terraform will perform the following actions:
       + key_id                             = (known after apply)
       + key_usage                          = "ENCRYPT_DECRYPT"
       + multi_region                       = (known after apply)
-      + policy                             = (known after apply)
+      + policy                             = jsonencode(
+            {
+              + Statement = [
+                  + {
+                      + Action    = "kms:GenerateDataKey"
+                      + Condition = {
+                          + ArnLike      = {
+                              + "aws:SourceArn" = "arn:aws:guardduty:eu-central-1:123456789012:detector/*"
+                            }
+                          + StringEquals = {
+                              + "aws:SourceAccount" = "123456789012"
+                            }
+                        }
+                      + Effect    = "Allow"
+                      + Principal = {
+                          + Service = "guardduty.amazonaws.com"
+                        }
+                      + Resource  = "*"
+                      + Sid       = "AllowGuardDutyToEncryptFindings"
+                    },
+                  + {
+                      + Action    = [
+                          + "kms:GenerateDataKey",
+                          + "kms:Decrypt",
+                        ]
+                      + Effect    = "Allow"
+                      + Principal = {
+                          + Service = "events.amazonaws.com"
+                        }
+                      + Resource  = "*"
+                      + Sid       = "AllowEventBridgeToUseKeyForSNS"
+                    },
+                  + {
+                      + Action    = "kms:*"
+                      + Effect    = "Allow"
+                      + Principal = {
+                          + AWS = "arn:aws:iam::123456789012:root"
+                        }
+                      + Resource  = "*"
+                      + Sid       = "EnableIAMPolicies"
+                    },
+                ]
+              + Version   = "2012-10-17"
+            }
+        )
       + region                             = "eu-central-1"
       + rotation_period_in_days            = (known after apply)
       + tags_all                           = (known after apply)

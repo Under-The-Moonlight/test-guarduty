@@ -147,6 +147,24 @@ run "bucket_policy_is_scoped_to_detector" {
   }
 }
 
+run "kms_policy_does_not_depend_on_detector" {
+  command = plan
+
+  variables {
+    create_kms_key = false
+    kms_key_arn    = "arn:aws:kms:eu-central-1:111122223333:key/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+  }
+
+  assert {
+    condition = anytrue([
+      for s in data.aws_iam_policy_document.kms_service_access.statement : anytrue([
+        for c in s.condition : c.variable == "aws:SourceArn" && contains(c.values, "arn:aws:guardduty:eu-central-1:111122223333:detector/*")
+      ]) if s.sid == "AllowGuardDutyToEncryptFindings"
+    ])
+    error_message = "GuardDuty key access must be scoped to detectors of this account and region."
+  }
+}
+
 run "all_features_disabled" {
   command = plan
 
