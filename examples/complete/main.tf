@@ -14,10 +14,8 @@ module "guardduty" {
   name = var.name
   tags = var.tags
 
-  # Detector
   finding_publishing_frequency = "FIFTEEN_MINUTES"
 
-  # Protection features
   enable_s3_protection                 = true
   enable_eks_audit_log_monitoring      = true
   enable_eks_runtime_monitoring        = true
@@ -29,7 +27,6 @@ module "guardduty" {
     ec2         = true
   }
 
-  # Findings export
   enable_s3_export                           = true
   create_kms_key                             = true
   kms_key_deletion_window_in_days            = 30
@@ -40,12 +37,10 @@ module "guardduty" {
     target_bucket = var.access_logs_bucket
   }
 
-  # Alerts: Medium and above
   enable_alerts            = true
   alert_severity_threshold = 4
   alert_email_addresses    = var.alert_email_addresses
 
-  # Suppression rules (evaluated in list order)
   suppression_rules = [
     {
       name        = "archive-low-severity"

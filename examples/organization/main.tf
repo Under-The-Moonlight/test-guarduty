@@ -1,11 +1,8 @@
-# Organizations management account: only used to designate the delegated administrator.
 provider "aws" {
   alias  = "management"
   region = var.region
 }
 
-# Delegated administrator (security tooling) account: owns the detector, findings export and alerts
-# for the whole organization.
 provider "aws" {
   region = var.region
 

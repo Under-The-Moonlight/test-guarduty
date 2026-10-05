@@ -1,6 +1,3 @@
-# Unit tests that run fully offline against a mocked AWS provider:
-#   terraform -chdir=modules/guardduty init -backend=false && terraform -chdir=modules/guardduty test
-
 mock_provider "aws" {
   override_data {
     target = data.aws_caller_identity.current
@@ -24,7 +21,7 @@ mock_provider "aws" {
     }
   }
 
-  # Policy documents are not rendered by the mock provider; return valid (empty) JSON instead of random strings.
+  # mock provider returns random strings, policy docs need valid json
   mock_data "aws_iam_policy_document" {
     defaults = {
       json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}"
@@ -123,8 +120,6 @@ run "defaults" {
   }
 }
 
-# Policy documents are rendered by the (mocked) provider, so the assertions inspect the statements
-# passed to aws_iam_policy_document instead of the rendered JSON.
 run "bucket_policy_is_scoped_to_detector" {
   command = apply
 

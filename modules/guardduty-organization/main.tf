@@ -1,6 +1,5 @@
 data "aws_caller_identity" "admin" {}
 
-# Executed in the Organizations management account.
 resource "aws_guardduty_organization_admin_account" "this" {
   provider = aws.management
 
@@ -9,8 +8,7 @@ resource "aws_guardduty_organization_admin_account" "this" {
   admin_account_id = data.aws_caller_identity.admin.account_id
 
   lifecycle {
-    # Also makes the delegation wait for the detector in the admin account, so that
-    # Terraform owns that detector instead of racing with GuardDuty creating one.
+    # also makes delegation wait until our detector exists in the admin account
     precondition {
       condition     = var.detector_id != ""
       error_message = "detector_id of the delegated administrator account must be set."
@@ -18,7 +16,6 @@ resource "aws_guardduty_organization_admin_account" "this" {
   }
 }
 
-# Executed in the delegated administrator account.
 resource "aws_guardduty_organization_configuration" "this" {
   region = var.region
 

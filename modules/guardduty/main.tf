@@ -18,14 +18,11 @@ locals {
   bucket_name = coalesce(var.s3_bucket_name, "${var.name}-findings-${local.account_id}-${local.region}")
   bucket_arn  = "arn:${local.partition}:s3:::${local.bucket_name}"
 
-  # Names/ARNs are built up front so that resource policies can reference them without dependency cycles.
   event_rule_name = "${var.name}-findings-alert"
   event_rule_arn  = "arn:${local.partition}:events:${local.region}:${local.account_id}:rule/${local.event_rule_name}"
   sns_topic_name  = "${var.name}-findings-alert"
   sns_topic_arn   = local.create_sns_topic ? aws_sns_topic.this[0].arn : var.sns_topic_arn
 
-  # Every supported feature is managed explicitly (ENABLED or DISABLED), so that the actual state
-  # never depends on the AWS defaults for new detectors.
   features = {
     S3_DATA_EVENTS = {
       enabled                  = var.enable_s3_protection
@@ -53,10 +50,6 @@ locals {
     }
   }
 }
-
-################################################################################
-# Detector & protection features
-################################################################################
 
 resource "aws_guardduty_detector" "this" {
   #checkov:skip=CKV2_AWS_3:Organization-wide enablement is provided by the guardduty-organization module.
@@ -86,10 +79,6 @@ resource "aws_guardduty_detector_feature" "this" {
     }
   }
 }
-
-################################################################################
-# KMS key (findings bucket + SNS topic encryption)
-################################################################################
 
 data "aws_iam_policy_document" "kms_service_access" {
   dynamic "statement" {
@@ -124,7 +113,7 @@ data "aws_iam_policy_document" "kms_service_access" {
     for_each = local.create_sns_topic ? [1] : []
 
     content {
-      # Required for EventBridge to publish into a KMS-encrypted SNS topic.
+      # needed for EventBridge to publish to the encrypted topic
       sid       = "AllowEventBridgeToUseKeyForSNS"
       effect    = "Allow"
       actions   = ["kms:GenerateDataKey", "kms:Decrypt"]
@@ -147,8 +136,6 @@ data "aws_iam_policy_document" "kms" {
   source_policy_documents = [data.aws_iam_policy_document.kms_service_access.json]
 
   statement {
-    # Default key policy statement: delegates access management to IAM policies of this account
-    # and prevents the key from becoming unmanageable.
     sid       = "EnableIAMPolicies"
     effect    = "Allow"
     actions   = ["kms:*"]
@@ -182,10 +169,6 @@ resource "aws_kms_alias" "this" {
   name          = "alias/${var.name}-findings"
   target_key_id = aws_kms_key.this[0].key_id
 }
-
-################################################################################
-# Findings export to S3
-################################################################################
 
 resource "aws_s3_bucket" "findings" {
   #checkov:skip=CKV2_AWS_6:Public access block is configured in aws_s3_bucket_public_access_block.findings (checkov does not link count-indexed resources).
@@ -303,7 +286,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "findings" {
     }
   }
 
-  # Lifecycle rules can only be applied once versioning is configured.
   depends_on = [aws_s3_bucket_versioning.findings]
 }
 
@@ -421,7 +403,6 @@ resource "aws_s3_bucket_policy" "findings" {
   bucket = aws_s3_bucket.findings[0].id
   policy = data.aws_iam_policy_document.findings_bucket[0].json
 
-  # The public access block must exist before a policy is attached, otherwise the two API calls race.
   depends_on = [aws_s3_bucket_public_access_block.findings]
 }
 
@@ -437,17 +418,12 @@ resource "aws_guardduty_publishing_destination" "this" {
 
   tags = var.tags
 
-  # GuardDuty validates write access to the bucket and key when the destination is created.
   depends_on = [
     aws_s3_bucket_policy.findings,
     aws_s3_bucket_server_side_encryption_configuration.findings,
     aws_kms_key.this,
   ]
 }
-
-################################################################################
-# Alerts: EventBridge -> SNS
-################################################################################
 
 resource "aws_sns_topic" "this" {
   count = local.create_sns_topic ? 1 : 0
@@ -549,10 +525,6 @@ resource "aws_cloudwatch_event_target" "sns" {
 
   depends_on = [aws_sns_topic_policy.this]
 }
-
-################################################################################
-# Suppression rules (GuardDuty filters)
-################################################################################
 
 resource "aws_guardduty_filter" "this" {
   for_each = { for idx, rule in var.suppression_rules : rule.name => merge(rule, { rank = idx + 1 }) }

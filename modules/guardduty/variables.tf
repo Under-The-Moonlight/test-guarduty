@@ -1,7 +1,3 @@
-################################################################################
-# General
-################################################################################
-
 variable "name" {
   description = "Name prefix used for all resources created by the module (S3 bucket, KMS alias, SNS topic, EventBridge rule)."
   type        = string
@@ -30,10 +26,6 @@ variable "tags" {
   default     = {}
 }
 
-################################################################################
-# Detector
-################################################################################
-
 variable "finding_publishing_frequency" {
   description = "How often updates to existing findings are published to EventBridge and S3. New findings are always exported within ~5 minutes."
   type        = string
@@ -44,10 +36,6 @@ variable "finding_publishing_frequency" {
     error_message = "finding_publishing_frequency must be one of FIFTEEN_MINUTES, ONE_HOUR, SIX_HOURS."
   }
 }
-
-################################################################################
-# Protection features
-################################################################################
 
 variable "enable_s3_protection" {
   description = "Enable S3 Protection (monitoring of S3 data events, feature S3_DATA_EVENTS)."
@@ -95,10 +83,6 @@ variable "enable_ec2_malware_protection" {
   type        = bool
   default     = true
 }
-
-################################################################################
-# Findings export to S3
-################################################################################
 
 variable "enable_s3_export" {
   description = "Export findings to a KMS-encrypted S3 bucket created by the module."
@@ -172,10 +156,6 @@ variable "findings_noncurrent_version_retention_days" {
   }
 }
 
-################################################################################
-# KMS
-################################################################################
-
 variable "create_kms_key" {
   description = "Create a customer managed KMS key used to encrypt the findings bucket and the SNS topic. When `false`, `kms_key_arn` must be provided."
   type        = bool
@@ -208,10 +188,6 @@ variable "kms_key_deletion_window_in_days" {
     error_message = "kms_key_deletion_window_in_days must be between 7 and 30."
   }
 }
-
-################################################################################
-# Alerts
-################################################################################
 
 variable "enable_alerts" {
   description = "Create an EventBridge rule that forwards findings at or above `alert_severity_threshold` to SNS."
@@ -263,10 +239,6 @@ variable "alert_email_addresses" {
     error_message = "alert_email_addresses must contain valid email addresses."
   }
 }
-
-################################################################################
-# Suppression rules
-################################################################################
 
 variable "suppression_rules" {
   description = <<-EOT
