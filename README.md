@@ -53,7 +53,7 @@ examples/organization/            delegated administrator setup      (+ plan.txt
 
 ```hcl
 module "guardduty" {
-  source = "git::https://github.com/<org>/terraform-aws-guardduty.git//modules/guardduty?ref=v1.0.0"
+  source = "git::https://github.com/Under-The-Moonlight/test-guarduty.git//modules/guardduty?ref=v1.0.0"
 }
 ```
 
@@ -65,7 +65,7 @@ new KMS key and publishes High/Critical findings (severity >= 7) to the `guarddu
 
 ```hcl
 module "guardduty" {
-  source = "git::https://github.com/<org>/terraform-aws-guardduty.git//modules/guardduty?ref=v1.0.0"
+  source = "git::https://github.com/Under-The-Moonlight/test-guarduty.git//modules/guardduty?ref=v1.0.0"
 
   eks_runtime_monitoring = {
     enabled          = true

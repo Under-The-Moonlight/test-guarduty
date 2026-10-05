@@ -1,9 +1,15 @@
-module.guardduty.data.aws_partition.current: Reading...
+data.aws_partition.current: Reading...
 module.guardduty.data.aws_caller_identity.current: Reading...
 module.guardduty.data.aws_region.current: Reading...
+data.aws_region.current: Reading...
+module.guardduty.data.aws_partition.current: Reading...
+data.aws_caller_identity.current: Reading...
+data.aws_partition.current: Read complete after 0s [id=aws]
 module.guardduty.data.aws_partition.current: Read complete after 0s [id=aws]
+data.aws_region.current: Read complete after 0s [id=eu-central-1]
 module.guardduty.data.aws_region.current: Read complete after 0s [id=eu-central-1]
 module.guardduty.data.aws_caller_identity.current: Read complete after 0s [id=123456789012]
+data.aws_caller_identity.current: Read complete after 0s [id=123456789012]
 module.guardduty.data.aws_iam_policy_document.kms_service_access: Reading...
 module.guardduty.data.aws_iam_policy_document.kms_service_access: Read complete after 0s [id=609647335]
 module.guardduty.data.aws_iam_policy_document.kms[0]: Reading...
@@ -15,6 +21,274 @@ plan. Resource actions are indicated with the following symbols:
  <= read (data resources)
 
 Terraform will perform the following actions:
+
+  # data.aws_iam_policy_document.access_logs will be read during apply
+  # (config refers to values not yet known)
+ <= data "aws_iam_policy_document" "access_logs" {
+      + id            = (known after apply)
+      + json          = (known after apply)
+      + minified_json = (known after apply)
+
+      + statement {
+          + actions   = [
+              + "s3:PutObject",
+            ]
+          + resources = [
+              + (known after apply),
+            ]
+          + sid       = "AllowS3ServerAccessLogs"
+
+          + condition {
+              + test     = "ArnLike"
+              + values   = [
+                  + "arn:aws:s3:::guardduty-complete-findings-123456789012-eu-central-1",
+                ]
+              + variable = "aws:SourceArn"
+            }
+          + condition {
+              + test     = "StringEquals"
+              + values   = [
+                  + "123456789012",
+                ]
+              + variable = "aws:SourceAccount"
+            }
+
+          + principals {
+              + identifiers = [
+                  + "logging.s3.amazonaws.com",
+                ]
+              + type        = "Service"
+            }
+        }
+      + statement {
+          + actions   = [
+              + "s3:*",
+            ]
+          + effect    = "Deny"
+          + resources = [
+              + (known after apply),
+              + (known after apply),
+            ]
+          + sid       = "DenyInsecureTransport"
+
+          + condition {
+              + test     = "Bool"
+              + values   = [
+                  + "false",
+                ]
+              + variable = "aws:SecureTransport"
+            }
+
+          + principals {
+              + identifiers = [
+                  + "*",
+                ]
+              + type        = "*"
+            }
+        }
+    }
+
+  # data.aws_iam_policy_document.alerts_dlq will be read during apply
+  # (config refers to values not yet known)
+ <= data "aws_iam_policy_document" "alerts_dlq" {
+      + id            = (known after apply)
+      + json          = (known after apply)
+      + minified_json = (known after apply)
+
+      + statement {
+          + actions   = [
+              + "sqs:SendMessage",
+            ]
+          + resources = [
+              + (known after apply),
+            ]
+          + sid       = "AllowEventBridgeDeadLetters"
+
+          + condition {
+              + test     = "ArnEquals"
+              + values   = [
+                  + (known after apply),
+                ]
+              + variable = "aws:SourceArn"
+            }
+
+          + principals {
+              + identifiers = [
+                  + "events.amazonaws.com",
+                ]
+              + type        = "Service"
+            }
+        }
+    }
+
+  # aws_s3_bucket.access_logs will be created
+  + resource "aws_s3_bucket" "access_logs" {
+      + acceleration_status         = (known after apply)
+      + acl                         = (known after apply)
+      + arn                         = (known after apply)
+      + bucket                      = "guardduty-complete-access-logs-123456789012-eu-central-1"
+      + bucket_domain_name          = (known after apply)
+      + bucket_namespace            = (known after apply)
+      + bucket_prefix               = (known after apply)
+      + bucket_region               = (known after apply)
+      + bucket_regional_domain_name = (known after apply)
+      + force_destroy               = false
+      + hosted_zone_id              = (known after apply)
+      + id                          = (known after apply)
+      + object_lock_enabled         = (known after apply)
+      + policy                      = (known after apply)
+      + region                      = "eu-central-1"
+      + request_payer               = (known after apply)
+      + tags_all                    = {
+          + "ManagedBy" = "terraform"
+        }
+      + website_domain              = (known after apply)
+      + website_endpoint            = (known after apply)
+
+      + cors_rule (known after apply)
+
+      + grant (known after apply)
+
+      + lifecycle_rule (known after apply)
+
+      + logging (known after apply)
+
+      + object_lock_configuration (known after apply)
+
+      + replication_configuration (known after apply)
+
+      + server_side_encryption_configuration (known after apply)
+
+      + versioning (known after apply)
+
+      + website (known after apply)
+    }
+
+  # aws_s3_bucket_lifecycle_configuration.access_logs will be created
+  + resource "aws_s3_bucket_lifecycle_configuration" "access_logs" {
+      + bucket                                 = (known after apply)
+      + expected_bucket_owner                  = (known after apply)
+      + id                                     = (known after apply)
+      + region                                 = "eu-central-1"
+      + transition_default_minimum_object_size = "all_storage_classes_128K"
+
+      + rule {
+          + id     = "expire-logs"
+          + status = "Enabled"
+            # (1 unchanged attribute hidden)
+
+          + abort_incomplete_multipart_upload {
+              + days_after_initiation = 7
+            }
+
+          + expiration {
+              + days                         = 90
+              + expired_object_delete_marker = false
+            }
+
+          + filter {
+                # (1 unchanged attribute hidden)
+            }
+
+          + noncurrent_version_expiration {
+              + noncurrent_days = 7
+            }
+        }
+    }
+
+  # aws_s3_bucket_ownership_controls.access_logs will be created
+  + resource "aws_s3_bucket_ownership_controls" "access_logs" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+      + region = "eu-central-1"
+
+      + rule {
+          + object_ownership = "BucketOwnerEnforced"
+        }
+    }
+
+  # aws_s3_bucket_policy.access_logs will be created
+  + resource "aws_s3_bucket_policy" "access_logs" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+      + policy = (known after apply)
+      + region = "eu-central-1"
+    }
+
+  # aws_s3_bucket_public_access_block.access_logs will be created
+  + resource "aws_s3_bucket_public_access_block" "access_logs" {
+      + block_public_acls       = true
+      + block_public_policy     = true
+      + bucket                  = (known after apply)
+      + id                      = (known after apply)
+      + ignore_public_acls      = true
+      + region                  = "eu-central-1"
+      + restrict_public_buckets = true
+    }
+
+  # aws_s3_bucket_server_side_encryption_configuration.access_logs will be created
+  + resource "aws_s3_bucket_server_side_encryption_configuration" "access_logs" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+      + region = "eu-central-1"
+
+      + rule {
+          + blocked_encryption_types = (known after apply)
+          + bucket_key_enabled       = (known after apply)
+
+          + apply_server_side_encryption_by_default {
+              + kms_master_key_id = (known after apply)
+              + sse_algorithm     = "AES256"
+            }
+        }
+    }
+
+  # aws_s3_bucket_versioning.access_logs will be created
+  + resource "aws_s3_bucket_versioning" "access_logs" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+      + region = "eu-central-1"
+
+      + versioning_configuration {
+          + mfa_delete = (known after apply)
+          + status     = "Enabled"
+        }
+    }
+
+  # aws_sqs_queue.alerts_dlq will be created
+  + resource "aws_sqs_queue" "alerts_dlq" {
+      + arn                               = (known after apply)
+      + content_based_deduplication       = false
+      + deduplication_scope               = (known after apply)
+      + delay_seconds                     = 0
+      + fifo_queue                        = false
+      + fifo_throughput_limit             = (known after apply)
+      + id                                = (known after apply)
+      + kms_data_key_reuse_period_seconds = 0
+      + max_message_size                  = 262144
+      + message_retention_seconds         = 1209600
+      + name                              = "guardduty-complete-alerts-dlq"
+      + name_prefix                       = (known after apply)
+      + policy                            = (known after apply)
+      + receive_wait_time_seconds         = 0
+      + redrive_allow_policy              = (known after apply)
+      + redrive_policy                    = (known after apply)
+      + region                            = "eu-central-1"
+      + sqs_managed_sse_enabled           = true
+      + tags_all                          = {
+          + "ManagedBy" = "terraform"
+        }
+      + url                               = (known after apply)
+      + visibility_timeout_seconds        = 30
+    }
+
+  # aws_sqs_queue_policy.alerts_dlq will be created
+  + resource "aws_sqs_queue_policy" "alerts_dlq" {
+      + id        = (known after apply)
+      + policy    = (known after apply)
+      + queue_url = (known after apply)
+      + region    = "eu-central-1"
+    }
 
   # module.guardduty.data.aws_iam_policy_document.findings_bucket[0] will be read during apply
   # (config refers to values not yet known)
@@ -272,6 +546,8 @@ Terraform will perform the following actions:
       + region         = "eu-central-1"
       + rule           = "guardduty-complete-findings-alert"
       + target_id      = "sns"
+
+      + dead_letter_config (known after apply)
     }
 
   # module.guardduty.aws_guardduty_detector.this will be created
@@ -710,6 +986,15 @@ Terraform will perform the following actions:
         }
     }
 
+  # module.guardduty.aws_s3_bucket_logging.findings["findings"] will be created
+  + resource "aws_s3_bucket_logging" "findings" {
+      + bucket        = (known after apply)
+      + id            = (known after apply)
+      + region        = "eu-central-1"
+      + target_bucket = (known after apply)
+      + target_prefix = "guardduty-findings/"
+    }
+
   # module.guardduty.aws_s3_bucket_ownership_controls.findings["findings"] will be created
   + resource "aws_s3_bucket_ownership_controls" "findings" {
       + bucket = (known after apply)
@@ -804,7 +1089,24 @@ Terraform will perform the following actions:
       + region = "eu-central-1"
     }
 
-Plan: 25 to add, 0 to change, 0 to destroy.
+  # module.guardduty.aws_sns_topic_subscription.email["security-alerts@example.com"] will be created
+  + resource "aws_sns_topic_subscription" "email" {
+      + arn                             = (known after apply)
+      + confirmation_timeout_in_minutes = 1
+      + confirmation_was_authenticated  = (known after apply)
+      + endpoint                        = "security-alerts@example.com"
+      + endpoint_auto_confirms          = false
+      + filter_policy_scope             = (known after apply)
+      + id                              = (known after apply)
+      + owner_id                        = (known after apply)
+      + pending_confirmation            = (known after apply)
+      + protocol                        = "email"
+      + raw_message_delivery            = false
+      + region                          = "eu-central-1"
+      + topic_arn                       = (known after apply)
+    }
+
+Plan: 36 to add, 0 to change, 0 to destroy.
 
 Changes to Outputs:
   + detector_id          = (known after apply)

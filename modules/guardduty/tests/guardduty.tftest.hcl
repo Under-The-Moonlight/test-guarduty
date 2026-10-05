@@ -399,3 +399,23 @@ run "kms_key_in_other_region" {
 
   expect_failures = [aws_guardduty_detector.this]
 }
+
+run "kms_key_arn_with_create_kms_key" {
+  command = plan
+
+  variables {
+    kms_key_arn = "arn:aws:kms:eu-central-1:111122223333:key/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+  }
+
+  expect_failures = [var.kms_key_arn]
+}
+
+run "sns_topic_arn_with_create_sns_topic" {
+  command = plan
+
+  variables {
+    sns_topic_arn = "arn:aws:sns:eu-central-1:111122223333:security-alerts"
+  }
+
+  expect_failures = [var.sns_topic_arn]
+}

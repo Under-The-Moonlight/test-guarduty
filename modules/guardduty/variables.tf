@@ -173,6 +173,11 @@ variable "kms_key_arn" {
     condition     = var.create_kms_key || var.kms_key_arn != null || !(var.enable_s3_export || (var.enable_alerts && var.create_sns_topic))
     error_message = "kms_key_arn is required when create_kms_key = false and either S3 export or the module-managed SNS topic is enabled."
   }
+
+  validation {
+    condition     = !(var.create_kms_key && var.kms_key_arn != null)
+    error_message = "kms_key_arn is set, but create_kms_key = true would create a new key instead. Set create_kms_key = false to use it."
+  }
 }
 
 variable "kms_key_deletion_window_in_days" {
@@ -237,6 +242,11 @@ variable "sns_topic_arn" {
   validation {
     condition     = !var.enable_alerts || var.create_sns_topic || var.sns_topic_arn != null
     error_message = "sns_topic_arn is required when enable_alerts = true and create_sns_topic = false."
+  }
+
+  validation {
+    condition     = !(var.create_sns_topic && var.sns_topic_arn != null)
+    error_message = "sns_topic_arn is set, but create_sns_topic = true would create a new topic instead. Set create_sns_topic = false to use it."
   }
 }
 
